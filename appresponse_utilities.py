@@ -521,9 +521,14 @@ def run_action(hostnamelist, username, password, action, actionfile):
 			if (actionfile == None or actionfile == ""):
 				print ("Please specify an ID for the filename on the appliance that you would like to delete in --actionfile parameter")
 			else:
-				id = actionfile
-			### jkraenzle: Fix 
-			backup = appresponse_backup_delete (hostname, access_token, version, id)
+				backup_to_delete = None
+				backups_list = appresponse_backups_list (hostname, access_token, version)
+				for backup in backups_list:
+					if actionfile == backup['id']:
+						backup_to_delete = backup
+						break
+
+			backup = appresponse_backup_delete (hostname, access_token, version, backup_to_delete)
 
 		# ACTION - upload_backup
 		elif (action == "upload_backup"):

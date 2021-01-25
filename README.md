@@ -4,7 +4,7 @@ Currently, a set of utilities for AppResponse backup. There are two ways to exec
 
 <b>Backup</b>
 
-python appresponse_utilities.py --fromconfig config.yaml
+python appresponse_utilities.py --backupfromconfig backup.yaml
 
 <b>Actions</b>
 
