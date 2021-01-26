@@ -161,44 +161,55 @@ def appresponse_backup_delete (appliance, access_token, version, backup):
 def appresponse_backup_download_and_store (appliance, access_token, version, backup, path=None):
 	backup_file = appresponse_rest_api ("GET", "/api/npm.backup/1.0/backups/items/" + backup['id'] + "/file", appliance, access_token, version)
 	
-	# Create folders and filenames for store
-	backup_time_str = "Unknown"
-	if 'backup_time' in backup:
-		backup_timestamp = backup['backup_time']
-		dt = datetime.fromtimestamp(backup_timestamp)
-		backup_time_str = dt.strftime("%Y%m%d%I%M%S")
-
-	backup_filename = appliance + '.' + backup_time_str + ".backup.tgz"
-	if path != None:
-		backup_filename = path + backup_filename
-	
 	if (backup_file != None):
+		# Create folders and filenames for store
+		backup_time_str = "Unknown"
+		if 'backup_time' in backup:
+			backup_timestamp = backup['backup_time']
+			dt = datetime.fromtimestamp(backup_timestamp)
+			backup_time_str = dt.strftime("%Y%m%d%I%M%S")
+
+		backup_filename = appliance + '.' + backup_time_str + ".backup.tgz"
+		if path != None:
+			try:
+				if not os.path.exists(path):
+					os.mkdir(path)
+			except:
+				print("WARNING")
+				print("Path provided does not exist and could not be created.")
+				print("Defaulting to local folder.")
+				path = None
+
+			if path != None:
+				# Likely need to ensure that path ends with appropriate path separator character at this point
+				backup_filename = path + backup_filename
 
 		try:
-			if not os.path.exists(path):
-				os.mkdir(path)
 			with open(backup_filename, "wb") as backup_f:
 				backup_f.write (backup_file)
+			return backup_filename
 		except:
 			return None
+	else:
+		return None
 	
-	return backup_filename
 
 # REST API Python wrapper to download and delete automated backup
-def appresponse_backup_download_and_delete (appliance, access_token, version, backup, path):
+def appresponse_backup_download_and_delete (appliance, access_token, version, backup, path, delete_after_download=True):
 
 	backup_filename = appresponse_backup_download_and_store(appliance, access_token, version, backup, path)
 
-	delete_status = appresponse_backup_delete(appliance, access_token, version, backup)
+	if delete_after_download == None or delete_after_download == True:
+		delete_status = appresponse_backup_delete(appliance, access_token, version, backup)
 
 	return delete_status, backup_filename
 
 # REST API Python wrapper to create and pull backup from appliance
-def appresponse_backup_get (appliance, access_token, version, path):
+def appresponse_backup_get (appliance, access_token, version, path, delete_after_download=True):
 	backup_id, backup = appresponse_backup_create (appliance, access_token, version)
 
 	if (backup_id != None):
-		empty_result,filename = appresponse_backup_download_and_delete (appliance, access_token, version, backup, path)
+		empty_result,filename = appresponse_backup_download_and_delete (appliance, access_token, version, backup, path, delete_after_download)
 		return True,filename
 	else:
 		return False,filename
@@ -604,7 +615,7 @@ def backup_from_yaml(config):
 		status = appresponse_backup_space_create (hostname, access_token, version, delete_options, store_options)
 
 		# Create, download, and delete a backup of the AppResponse at a current time (pull_backup)
-		backup_status,backup_filename = appresponse_backup_get(hostname, access_token, version, store_options['path'])
+		backup_status,backup_filename = appresponse_backup_get(hostname, access_token, version, store_options['path'], delete_options['delete_automated_backup'])
 		if backup_status == False:
 			print("AppResponse %s backup failed. Continuing to next appliance ..." % hostname)
 			backup_in_progress+=1
