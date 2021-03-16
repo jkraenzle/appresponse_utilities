@@ -425,9 +425,9 @@ def backup_credentials_get (filename):
 		username = credentials['username'] 
 
 	# Allow for testing, but the expectation is that this is not included in YAML
-	password = None
-	if 'password' in credentials:
-		password = credentials['password']
+	key = None
+	if 'key' in credentials:
+		key = credentials['key']
 
 	# Include options to handle what to do with existing backups and how to store locally
 	delete_options = None
@@ -443,7 +443,7 @@ def backup_credentials_get (filename):
 		print("Failed to read file %s to load list of hostnames specified by parameter --hostnamelist." % list)
 		hostnamelist = None
 
-	return hostname, hostnamelist, username, password, delete_options, store_options
+	return hostname, hostnamelist, username, key, delete_options, store_options
 
 def backup_restore_credentials_get (filename):
 
@@ -463,12 +463,12 @@ def backup_restore_credentials_get (filename):
 		dst_username = credentials['dst_username'] 
 
 	# Allow for testing, but the expectation is that this is not included in YAML
-	src_password = None
-	if 'src_password' in credentials:
-		src_password = credentials['src_password']
-	dst_password = None
-	if 'dst_password' in credentials:
-		dst_password = credentials['dst_password']
+	src_key = None
+	if 'src_key' in credentials:
+		src_key = credentials['src_key']
+	dst_key = None
+	if 'dst_key' in credentials:
+		dst_key = credentials['dst_key']
 
 	# Include options to handle what to do with existing backups and how to store locally
 	delete_options = None
@@ -478,10 +478,10 @@ def backup_restore_credentials_get (filename):
 	if 'store_options' in credentials:
 		store_options = credentials['store_options']
 
-	return src_hostname, src_username, src_password, dst_hostname, dst_username, dst_password, delete_options, store_optio
+	return src_hostname, src_username, src_key, dst_hostname, dst_username, dst_key, delete_options, store_optio
 	
 
-def run_action(hostnamelist, username, password, action, actionfile):
+def run_action(hostnamelist, username, key, action, actionfile):
 
 	# Check inputs for required data and prep variables
 	if (hostnamelist == None or hostnamelist == ""):
@@ -498,16 +498,16 @@ def run_action(hostnamelist, username, password, action, actionfile):
 	if not action in APPRESPONSE_UTILITIES_ACTIONS:
 		print ("Action %s is unknown" % action)
 
-	if (password == None or password == ""):
-		print ("Please provide password for account %s on %s" % username, hostname)
-		password = getpass.getpass ()
+	if (key == None or key == ""):
+		print ("Please provide key for account %s on %s" % username, hostname)
+		key = getpass.getpass ()
 
 	for hostname in hostnamelist:
 
 		# Loop through hosts, applying 'action'
-		version = appresponse_version_get (hostname, username, password)
+		version = appresponse_version_get (hostname, username, key)
 
-		access_token = appresponse_authenticate (hostname, username, password, version)
+		access_token = appresponse_authenticate (hostname, username, key, version)
 
 		if (access_token == None or access_token == ""):	
 			print ("Failed to login to %s. Terminating action ..." % hostname)
@@ -560,7 +560,7 @@ def backup_from_yaml(config):
 	print("Step 1 of 3: Confirming accounts and pre-requisites ...")
 	print("")
 
-	hostname, hostnamelist, username, password, delete_options, store_options = backup_credentials_get(config)
+	hostname, hostnamelist, username, key, delete_options, store_options = backup_credentials_get(config)
 
 	if hostname != None and hostnamelist != None:
 		print("Please specify 'hostname' or 'list' in the configuration file, but not both.")
@@ -575,10 +575,10 @@ def backup_from_yaml(config):
 		print("Terminating script ...")
 		return
 
-	# Login to source and destination AppResponses to confirm the passwords are correct before proceeding
-	if password == None or password == "":
-		print("Please provide password for account %s on the AppResponse appliances." % username)
-		password = getpass.getpass()
+	# Login to source and destination AppResponses to confirm the keys are correct before proceeding
+	if key == None or key == "":
+		print("Please provide key for account %s on the AppResponse appliances." % username)
+		key = getpass.getpass()
 
 	num_hostnames = len(hostnamelist)
 
@@ -586,7 +586,7 @@ def backup_from_yaml(config):
 	for hostname in hostnamelist:
 
 		try:
-			access_token, version = appresponse_authentication_check(hostname, username, password)
+			access_token, version = appresponse_authentication_check(hostname, username, key)
 			 
 		except:
 			access_token = None
@@ -649,7 +649,7 @@ def main():
 	parser.add_argument('--hostname', help="Hostname or IP address of the AppResponse appliance")
 	parser.add_argument('--list', help="File containing hostnames or IP addresses, one per line")
 	parser.add_argument('--username', help="Username for the appliance")
-	parser.add_argument('--password', help="Password for the username")
+	parser.add_argument('--key', help="Key for the username")
 	parser.add_argument('--action', help="Action to perform: %s" % APPRESPONSE_UTILITIES_ACTIONS)
 	parser.add_argument('--actionfile', help="Settings file associated with action")
 	parser.add_argument('--backupfromconfig', help="Run full workflow from YAML config")
@@ -669,7 +669,7 @@ def main():
 			except:
 				hostnamelist = None
 			
-		run_action(hostnamelist, args.username, args.password, args.action, args.actionfile)
+		run_action(hostnamelist, args.username, args.key, args.action, args.actionfile)
 
 
 if __name__ == "__main__":
